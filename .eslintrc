@@ -7,10 +7,27 @@
   "ignorePatterns": ["!.dist", "dist"],
   "extends": [
     "plugin:@typescript-eslint/recommended",
-    "prettier/@typescipt-eslint",
     "plugin:prettier/recommended"
   ],
   "env": {
     "node": true
+  },
+  "rules": {
+    "indent": [
+      "warn",
+      2,
+      {
+        "ignoredNodes": ["TemplateLiteral"]
+      }
+    ],
+    "jsx-a11y/anchor-is-valid": "off",
+    "jsx-quotes": ["warn", "prefer-double"],
+    "quotes": ["warn", "single"],
+    "import/no-unresolved": "off",
+    "no-unused-vars": "off",
+    "import/named": "warn",
+    "import/no-named-as-default": "off",
+    "eol-last": "warn",
+    "no-multiple-empty-lines": "warn"
   }
 }
