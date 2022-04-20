@@ -1,29 +1,8 @@
-console.log('start');
 import fs from 'fs';
 import path from 'path';
+import { Dir, File } from './classes';
 
-const inputPath = './temp/test';
-
-class File {
-  public type: string;
-
-  constructor(public filename: string) {
-    this.filename = filename;
-    this.type = 'file';
-  }
-}
-class Dir {
-  public type: string;
-
-  constructor(
-    public filename: string,
-    public childrens: Array<File | Dir | undefined>
-  ) {
-    this.filename = filename;
-    this.childrens = childrens;
-    this.type = 'dir';
-  }
-}
+const inputPath = './temp/test/info.txt';
 
 class zipper {
   private static async getTree(input: string) {
@@ -33,6 +12,7 @@ class zipper {
         if (stat.isFile()) return new File(filename);
         if (stat.isDirectory()) {
           const childrens = await getDirContent(filename);
+
           return new Dir(filename, childrens);
         }
         throw new Error('There is an error in getPathInfo');
@@ -62,8 +42,8 @@ class zipper {
 
   static async pack(path: string) {
     const tree = await this.getTree(path);
-    if (tree instanceof Dir) console.log(tree.childrens);
-    console.log(JSON.stringify(tree, null, 2));
+    const qwe = tree.info;
+    console.log(qwe);
   }
 }
 

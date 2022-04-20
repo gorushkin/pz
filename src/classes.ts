@@ -54,3 +54,57 @@ export class EOCD implements Note {
     return `${this.signature}:${this.totalCentralDirectoryRecord}:${this.sizeOfCentralDirectory}:${this.centralDirectoryOffset}`;
   }
 }
+
+enum targetTypes {
+  dir = 'dir',
+  file = 'file',
+}
+
+abstract class Entrie {
+  abstract get info(): File | (File | Dir)[];
+  abstract get type(): targetTypes;
+  abstract filePath: string;
+  abstract fileType: targetTypes;
+}
+
+export class File implements Entrie {
+  public fileType: targetTypes;
+
+  constructor(public filePath: string) {
+    this.filePath = filePath;
+    this.fileType = targetTypes.file;
+  }
+
+  get info(): File {
+    return this;
+  }
+
+  get type(): targetTypes {
+    return this.fileType;
+  }
+}
+export class Dir extends Entrie {
+  public fileType: targetTypes;
+
+  constructor(public filePath: string, public childrens: Array<File | Dir>) {
+    super();
+    this.filePath = filePath;
+    this.childrens = childrens;
+    this.fileType = targetTypes.dir;
+  }
+
+  get type(): targetTypes {
+    return this.fileType;
+  }
+
+  get info(): (File | Dir)[] {
+    const result: (File | Dir)[] = [];
+
+    this.childrens.forEach((file) => {
+      if (file instanceof File) result.push(file);
+      if (file instanceof Dir) result.push(file, ...file.info);
+    });
+
+    return result;
+  }
+}
