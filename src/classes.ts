@@ -1,3 +1,5 @@
+import path from 'path';
+
 export interface IFileInfo {
   filename: string;
   fileNameLength: number;
@@ -63,20 +65,30 @@ enum targetTypes {
 abstract class Entrie {
   abstract get info(): File | (File | Dir)[];
   abstract get type(): targetTypes;
-  abstract filePath: string;
   abstract fileType: targetTypes;
-}
 
-export class File implements Entrie {
-  public fileType: targetTypes;
+  name: string;
+  dirname: string;
 
   constructor(public filePath: string) {
+    this.name = path.basename(filePath);
+    this.dirname = path.dirname(filePath);
     this.filePath = filePath;
+  }
+}
+
+export class File extends Entrie {
+  fileType: targetTypes;
+  name: string;
+  dirname: string;
+
+  constructor(public filePath: string) {
+    super(filePath);
     this.fileType = targetTypes.file;
   }
 
-  get info(): File {
-    return this;
+  get info(): File[] {
+    return [this];
   }
 
   get type(): targetTypes {
@@ -84,11 +96,12 @@ export class File implements Entrie {
   }
 }
 export class Dir extends Entrie {
-  public fileType: targetTypes;
+  fileType: targetTypes;
+  name: string;
+  dirname: string;
 
   constructor(public filePath: string, public childrens: Array<File | Dir>) {
-    super();
-    this.filePath = filePath;
+    super(filePath);
     this.childrens = childrens;
     this.fileType = targetTypes.dir;
   }
