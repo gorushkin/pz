@@ -1,5 +1,6 @@
 import path from 'path';
 import { createReadStream, WriteStream } from 'fs';
+import { json } from 'stream/consumers';
 
 export interface IFileInfo {
   filename: string;
@@ -85,6 +86,10 @@ abstract class Entrie {
       size,
       fileNameLength: name.length,
     };
+  }
+
+  toString(): string {
+    return JSON.stringify(this, null, 2);
   }
 }
 
