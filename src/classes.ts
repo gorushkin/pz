@@ -1,6 +1,5 @@
 import path from 'path';
 import { createReadStream, WriteStream } from 'fs';
-import { json } from 'stream/consumers';
 
 export interface IFileInfo {
   filename: string;
@@ -22,12 +21,16 @@ interface Note {
 export class LFH implements Note {
   private signature: string;
 
-  constructor(private size: number, private fileNameLength: number) {
+  constructor(
+    private size: number,
+    private fileNameLength: number,
+    private name: string
+  ) {
     this.signature = LFH_SIGNATURE;
   }
 
   toString() {
-    return `${this.signature}:${this.size}:${this.fileNameLength}:`;
+    return `${this.signature}:${this.size}:${this.fileNameLength}:${this.name}:`;
   }
 }
 
@@ -104,13 +107,19 @@ export class File extends Entrie {
   async write(writeableStream: WriteStream): Promise<IFileInfo> {
     const readableStream = createReadStream(this.filePath);
 
-    const lfh = new LFH(this.stat.size, this.stat.fileNameLength);
+    const lfh = new LFH(
+      this.stat.size,
+      this.stat.fileNameLength,
+      this.stat.name
+    );
 
     const offset = await new Promise<number>((resolve, reject) => {
       readableStream.on('data', (chunk) => {
         const offset = writeableStream.writableLength;
         writeableStream.write(lfh.toString());
         writeableStream.write(chunk);
+        writeableStream.write('\n');
+        console.log(this.stat.name, offset);
         resolve(offset);
       });
 
@@ -156,12 +165,22 @@ export class Dir extends Entrie {
   }
 
   async write(writeableStream: WriteStream): Promise<IFileInfo[]> {
-    const lfh = new LFH(0, this.stat.fileNameLength);
+    const lfh = new LFH(0, this.stat.fileNameLength, this.stat.name);
+
+    const childrensFileInfo = await Promise.all(
+      this.childrens.map(async (item) => {
+        const pup = await item.write(writeableStream);
+        return pup;
+      })
+    );
 
     const offset = await new Promise<number>((resolve, reject) => {
       const offset = writeableStream.writableLength;
       writeableStream.write(lfh.toString());
+      writeableStream.write('\n');
       resolve(offset);
+
+      console.log(this.stat.name, offset);
 
       writeableStream.on('error', (err) => {
         reject(err);
@@ -177,14 +196,6 @@ export class Dir extends Entrie {
     };
 
     const dictionary: IFileInfo[] = [dirInfo];
-
-    const childrensFileInfo = await Promise.all(
-      this.childrens.map(async (item) => {
-        const pup = await item.write(writeableStream);
-        return pup;
-      })
-    );
-
     childrensFileInfo.forEach((item) =>
       Array.isArray(item) ? dictionary.push(...item) : dictionary.push(item)
     );

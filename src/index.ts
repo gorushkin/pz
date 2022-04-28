@@ -41,10 +41,10 @@ class zipper {
 
   static async pack(path: string) {
     const tree = await this.getTree(path);
-    console.log(tree);
     const writeable = createWriteStream('./temp/output/test.txt');
-
     const dictionary = await tree.write(writeable);
+
+    console.log('main writeable: ', writeable.writableLength);
   }
 }
 
