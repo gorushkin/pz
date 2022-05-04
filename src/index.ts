@@ -43,11 +43,15 @@ class zipper {
     const tree = await this.getTree(path);
     const writeable = createWriteStream('./temp/output/test.zip');
 
-    const dictionary = await tree.write(writeable);
+    const dictionary = await tree.getDictionary();
 
     const centralDirectoryOffset = writeable.writableLength;
 
-    dictionary.map((item) => {
+    if (!dictionary) throw Error('sadfasdf');
+
+    dictionary.map(async (item) => {
+      await item.writeLFH(writeable);
+      console.log('item: ', item);
       // const cdfh = new CDFH(item.offset, item.filename);
       // writeable.write(cdfh.toString());
       // return { ...item, cdfh };

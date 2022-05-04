@@ -1,5 +1,5 @@
 import path from 'path';
-import { createReadStream, WriteStream } from 'fs';
+import { createReadStream, WriteStream, ReadStream } from 'fs';
 import { LFH } from './zip/lfh';
 import { CDFH } from './zip/cdfh';
 
@@ -9,7 +9,9 @@ export interface IFileInfo {
   size: number;
   lfh: LFH;
   cdfh?: CDFH;
-  offset: number;
+  offset?: number;
+  stream?: ReadStream;
+  writeLFH(writeableStream: WriteStream): Promise<void>;
 }
 // const toHex = (string: string): string => Buffer.from(string).toString('hex');
 
@@ -28,7 +30,8 @@ abstract class Entrie {
   public filePath: string;
   abstract get info(): File | (File | Dir)[];
   abstract get type(): targetTypes;
-  abstract write(stream: WriteStream): Promise<IFileInfo[]>;
+  abstract getDictionary(): IFileInfo[];
+  abstract writeCDFH(stream: WriteStream): Promise<IFileInfo[]>;
 
   constructor(filePath: string, size: number) {
     this.filePath = filePath;
@@ -48,15 +51,17 @@ abstract class Entrie {
 }
 
 export class File extends Entrie {
+  writeCDFH(_stream: WriteStream): Promise<IFileInfo[]> {
+    throw new Error('Method not implemented.');
+  }
   private fileType: targetTypes;
-  private checksum: string | Buffer;
 
   constructor(filePath: string, size: number) {
     super(filePath, size);
     this.fileType = targetTypes.file;
   }
 
-  async write(writeableStream: WriteStream): Promise<IFileInfo[]> {
+  getDictionary(): IFileInfo[] {
     const readableStream = createReadStream(this.filePath);
 
     const lfh = new LFH(
@@ -65,30 +70,32 @@ export class File extends Entrie {
       this.stat.name
     );
 
-    const offset = await new Promise<number>((resolve, reject) => {
-      readableStream.on('data', (chunk) => {
-        const offset = writeableStream.writableLength;
-        writeableStream.write(lfh.hex);
-        writeableStream.write(lfh.name);
-        writeableStream.write(chunk);
-        resolve(offset);
-      });
-
-      readableStream.on('error', (err) => {
-        reject(err);
-      });
-
-      writeableStream.on('error', (err) => {
-        reject(err);
-      });
-    });
-
     const fileInfo: IFileInfo = {
       filename: this.stat.name.toString(),
       fileNameLength: this.stat.fileNameLength,
       size: this.stat.size,
       lfh: lfh,
-      offset,
+      writeLFH: async function (writeableStream: WriteStream): Promise<void> {
+        const offset = await new Promise<number>((resolve, reject) => {
+          readableStream.on('data', (chunk) => {
+            const offset = writeableStream.writableLength;
+            writeableStream.write(lfh.hex);
+            writeableStream.write(lfh.name);
+            writeableStream.write(chunk);
+            resolve(offset);
+          });
+
+          readableStream.on('error', (err) => {
+            reject(err);
+          });
+
+          writeableStream.on('error', (err) => {
+            reject(err);
+          });
+        });
+
+        this.offset = offset;
+      },
     };
 
     return [fileInfo];
@@ -103,6 +110,9 @@ export class File extends Entrie {
   }
 }
 export class Dir extends Entrie {
+  writeCDFH(_stream: WriteStream): Promise<IFileInfo[]> {
+    throw new Error('Method not implemented.');
+  }
   private fileType: targetTypes;
 
   constructor(
@@ -115,38 +125,39 @@ export class Dir extends Entrie {
     this.fileType = targetTypes.dir;
   }
 
-  async write(writeableStream: WriteStream): Promise<IFileInfo[]> {
+  getDictionary(): IFileInfo[] {
     const lfh = new LFH(0, this.stat.fileNameLength, this.stat.name);
 
-    const childrensFileInfo = await Promise.all(
-      this.childrens.map(async (item) => {
-        const pup = await item.write(writeableStream);
-        return pup;
-      })
+    const childrensFileInfo = this.childrens.map((item) =>
+      item.getDictionary()
     );
-
-    const offset = await new Promise<number>((resolve, reject) => {
-      const offset = writeableStream.writableLength;
-      writeableStream.write(lfh.toString());
-      resolve(offset);
-
-      writeableStream.on('error', (err) => {
-        reject(err);
-      });
-    });
 
     const dirInfo: IFileInfo = {
       filename: this.stat.name.toString(),
       fileNameLength: this.stat.fileNameLength,
       size: this.stat.size,
       lfh: lfh,
-      offset,
+      writeLFH: async function (writeableStream: WriteStream): Promise<void> {
+        const offset = await new Promise<number>((resolve, reject) => {
+          const offset = writeableStream.writableLength;
+          writeableStream.write(lfh.toString());
+          resolve(offset);
+
+          writeableStream.on('error', (err) => {
+            reject(err);
+          });
+        });
+
+        this.offset = offset;
+      },
     };
 
     const dictionary: IFileInfo[] = [dirInfo];
-    childrensFileInfo.forEach((item) =>
-      Array.isArray(item) ? dictionary.push(...item) : dictionary.push(item)
-    );
+    childrensFileInfo.forEach((item) => {
+      return Array.isArray(item)
+        ? dictionary.push(...item)
+        : dictionary.push(item);
+    });
 
     return dictionary;
   }
