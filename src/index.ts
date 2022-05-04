@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { CDFH, Dir, File, EOCD } from './classes';
+import { Dir, File } from './classes';
 import { createWriteStream, PathLike } from 'fs';
 
 const inputPath1: PathLike = '/home/gorushkin/Webdev/pz/temp/test/folder';
@@ -48,19 +48,19 @@ class zipper {
     const centralDirectoryOffset = writeable.writableLength;
 
     dictionary.map((item) => {
-      const cdfh = new CDFH(item.offset, item.filename);
+      // const cdfh = new CDFH(item.offset, item.filename);
       // writeable.write(cdfh.toString());
-      return { ...item, cdfh };
+      // return { ...item, cdfh };
     });
 
     const sizeOfCentralDirectory =
       writeable.writableLength - centralDirectoryOffset;
 
-    const eocd = new EOCD(
-      dictionary.length,
-      sizeOfCentralDirectory,
-      centralDirectoryOffset
-    );
+    // const eocd = new EOCD(
+    //   dictionary.length,
+    //   sizeOfCentralDirectory,
+    //   centralDirectoryOffset
+    // );
 
     // writeable.write(eocd.toString());
 
