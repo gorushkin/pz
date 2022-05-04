@@ -1,5 +1,14 @@
 import path from 'path';
 import { createReadStream, WriteStream } from 'fs';
+import {
+  IParam,
+  LFHParamsNames,
+  LFH_OFFSETS,
+  LFH_SIGNATURE,
+  LFH_SIZE,
+  EOCD_SIGNATURE,
+  CDFH_SIGNATURE,
+} from './constants';
 
 export interface IFileInfo {
   filename: string;
@@ -9,28 +18,71 @@ export interface IFileInfo {
   cdfh?: CDFH;
   offset: number;
 }
-
-const LFH_SIGNATURE = '504b0304';
-const CDFH_SIGNATURE = '504b1020';
-const EOCD_SIGNATURE = '504b5060';
+// const toHex = (string: string): string => Buffer.from(string).toString('hex');
 
 interface Note {
   toString(): void;
+  get hex(): string;
 }
 
 export class LFH implements Note {
-  private signature: string;
+  private [LFHParamsNames.signature]: number;
+  private [LFHParamsNames.versionToExtract]: number;
+  private [LFHParamsNames.generalPurposeBitFlag]: number;
+  private [LFHParamsNames.compressionMethod]: number;
+  private [LFHParamsNames.modificationTime]: number;
+  private [LFHParamsNames.modificationDate]: number;
+  private [LFHParamsNames.crc32]: number;
+  private [LFHParamsNames.compressedSize]: number;
+  private [LFHParamsNames.uncompressedSize]: number;
+  private [LFHParamsNames.filenameLength]: number;
+  private [LFHParamsNames.extraFieldLength]: number;
+  private size: number;
+  private name: string;
+  private data: Buffer;
 
-  constructor(
-    private size: number,
-    private fileNameLength: number,
-    private name: string
-  ) {
+  constructor(size: number, fileNameLength: number, name: string) {
+    this.versionToExtract = 20;
+    this.generalPurposeBitFlag = 0;
+    this.modificationTime = 28021;
+    this.modificationDate = 20072;
+    this.compressedSize = size;
+    this.uncompressedSize = size;
+    this.compressionMethod = 0;
+    this.crc32 = 0;
+    this.filenameLength = fileNameLength;
+    this.name = name;
     this.signature = LFH_SIGNATURE;
+    this.data = Buffer.alloc(LFH_SIZE);
+  }
+
+  private addDataToBuffer(param: IParam): void {
+    const bufferWriteParamMapping = {
+      32: (buffer: Buffer, value: number, offset: number) =>
+        buffer.writeUInt32LE(value, offset),
+      16: (buffer: Buffer, value: number, offset: number) =>
+        buffer.writeUInt16LE(value, offset),
+    };
+
+    bufferWriteParamMapping[param.type](
+      this.data,
+      this[param.name],
+      param.offset
+    );
+  }
+
+  get hex(): string {
+    this.addDataToBuffer(LFH_OFFSETS.versionToExtract);
+
+    console.log(this.data);
+
+    return '0';
   }
 
   toString() {
-    return `${this.signature}:${this.size}:${this.fileNameLength}:${this.name}:`;
+    // return `${this.signature}:${this.size}:${this.filenameLength}:${this.fileName}:`;
+
+    return 'asdfasdf';
   }
 }
 
@@ -39,6 +91,9 @@ export class CDFH implements Note {
 
   constructor(private offset: number, private filename: string) {
     this.signature = CDFH_SIGNATURE;
+  }
+  get hex(): string {
+    throw new Error('Method not implemented.');
   }
 
   toString() {
@@ -55,6 +110,9 @@ export class EOCD implements Note {
     private centralDirectoryOffset: number
   ) {
     this.signature = EOCD_SIGNATURE;
+  }
+  get hex(): string {
+    throw new Error('Method not implemented.');
   }
 
   toString() {
@@ -77,7 +135,7 @@ abstract class Entrie {
   public filePath: string;
   abstract get info(): File | (File | Dir)[];
   abstract get type(): targetTypes;
-  abstract write(stream: WriteStream): Promise<IFileInfo | IFileInfo[]>;
+  abstract write(stream: WriteStream): Promise<IFileInfo[]>;
 
   constructor(filePath: string, size: number) {
     this.filePath = filePath;
@@ -98,13 +156,14 @@ abstract class Entrie {
 
 export class File extends Entrie {
   private fileType: targetTypes;
+  private checksum: string | Buffer;
 
   constructor(filePath: string, size: number) {
     super(filePath, size);
     this.fileType = targetTypes.file;
   }
 
-  async write(writeableStream: WriteStream): Promise<IFileInfo> {
+  async write(writeableStream: WriteStream): Promise<IFileInfo[]> {
     const readableStream = createReadStream(this.filePath);
 
     const lfh = new LFH(
@@ -116,10 +175,9 @@ export class File extends Entrie {
     const offset = await new Promise<number>((resolve, reject) => {
       readableStream.on('data', (chunk) => {
         const offset = writeableStream.writableLength;
-        writeableStream.write(lfh.toString());
-        writeableStream.write(chunk);
-        writeableStream.write('\n');
-        console.log(this.stat.name, offset);
+        writeableStream.write(lfh.hex);
+        // writeableStream.write(lfh.toString());
+        writeableStream.write(chunk.toString('hex'));
         resolve(offset);
       });
 
@@ -140,7 +198,7 @@ export class File extends Entrie {
       offset,
     };
 
-    return fileInfo;
+    return [fileInfo];
   }
 
   get info(): File[] {
@@ -177,10 +235,7 @@ export class Dir extends Entrie {
     const offset = await new Promise<number>((resolve, reject) => {
       const offset = writeableStream.writableLength;
       writeableStream.write(lfh.toString());
-      writeableStream.write('\n');
       resolve(offset);
-
-      console.log(this.stat.name, offset);
 
       writeableStream.on('error', (err) => {
         reject(err);

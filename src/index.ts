@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Dir, File } from './classes';
+import { CDFH, Dir, File, EOCD } from './classes';
 import { createWriteStream, PathLike } from 'fs';
 
 const inputPath1: PathLike = '/home/gorushkin/Webdev/pz/temp/test/folder';
@@ -42,9 +42,27 @@ class zipper {
   static async pack(path: string) {
     const tree = await this.getTree(path);
     const writeable = createWriteStream('./temp/output/test.txt');
+
     const dictionary = await tree.write(writeable);
 
-    console.log('main writeable: ', writeable.writableLength);
+    const centralDirectoryOffset = writeable.writableLength;
+
+    dictionary.map((item) => {
+      const cdfh = new CDFH(item.offset, item.filename);
+      writeable.write(cdfh.toString());
+      return { ...item, cdfh };
+    });
+
+    const sizeOfCentralDirectory =
+      writeable.writableLength - centralDirectoryOffset;
+
+    const eocd = new EOCD(
+      dictionary.length,
+      sizeOfCentralDirectory,
+      centralDirectoryOffset
+    );
+
+    writeable.write(eocd.toString());
   }
 }
 
