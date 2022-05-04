@@ -3,7 +3,7 @@ const CDFH_SIGNATURE = '504b1020';
 const EOCD_SIGNATURE = '504b5060';
 const LFH_SIZE = 30;
 
-enum LFHParamsNames {
+enum LFHNames {
   signature = 'signature',
   versionToExtract = 'versionToExtract',
   generalPurposeBitFlag = 'generalPurposeBitFlag',
@@ -15,92 +15,78 @@ enum LFHParamsNames {
   uncompressedSize = 'uncompressedSize',
   filenameLength = 'filenameLength',
   extraFieldLength = 'extraFieldLength',
-  // fileName = 'fileName',
+  filename = 'filename',
 }
 
 export interface IParam {
   offset: number;
   type: 32 | 16;
-  name: LFHParamsNames;
+  name: LFHNames;
 }
 
-type noteType = Record<LFHParamsNames, IParam>;
-
-const LFH_OFFSETS: noteType = {
-  [LFHParamsNames.signature]: {
-    name: LFHParamsNames.signature,
+const LFH_OFFSETS: IParam[] = [
+  {
+    name: LFHNames.signature,
     offset: 0,
     type: 32,
   },
-  [LFHParamsNames.versionToExtract]: {
-    name: LFHParamsNames.versionToExtract,
+  {
+    name: LFHNames.versionToExtract,
     offset: 4,
     type: 16,
   },
-  [LFHParamsNames.generalPurposeBitFlag]: {
-    name: LFHParamsNames.generalPurposeBitFlag,
+  {
+    name: LFHNames.generalPurposeBitFlag,
     offset: 6,
     type: 16,
   },
-  [LFHParamsNames.compressionMethod]: {
-    name: LFHParamsNames.compressionMethod,
+  {
+    name: LFHNames.compressionMethod,
     offset: 8,
     type: 16,
   },
-  [LFHParamsNames.modificationTime]: {
-    name: LFHParamsNames.modificationTime,
+  {
+    name: LFHNames.modificationTime,
     offset: 10,
     type: 16,
   },
-  [LFHParamsNames.modificationDate]: {
-    name: LFHParamsNames.modificationDate,
+  {
+    name: LFHNames.modificationDate,
     offset: 12,
     type: 16,
   },
-  [LFHParamsNames.crc32]: { name: LFHParamsNames.crc32, offset: 14, type: 32 },
-  [LFHParamsNames.compressedSize]: {
-    name: LFHParamsNames.compressedSize,
+  {
+    name: LFHNames.crc32,
+    offset: 14,
+    type: 32,
+  },
+  {
+    name: LFHNames.compressedSize,
     offset: 18,
     type: 32,
   },
-  [LFHParamsNames.uncompressedSize]: {
-    name: LFHParamsNames.uncompressedSize,
+  {
+    name: LFHNames.uncompressedSize,
     offset: 22,
     type: 32,
   },
-  [LFHParamsNames.filenameLength]: {
-    name: LFHParamsNames.filenameLength,
+  {
+    name: LFHNames.filenameLength,
     offset: 26,
     type: 16,
   },
-  [LFHParamsNames.extraFieldLength]: {
-    name: LFHParamsNames.extraFieldLength,
+  {
+    name: LFHNames.extraFieldLength,
     offset: 28,
     type: 16,
   },
-  // [LFHParamsNames.fileName]: {
-  //   name: LFHParamsNames.fileName,
-  //   offset: 30,
-  //   type: 32,
-  // },
-};
-
-const constants = {
-  LFH_SIGNATURE,
-  CDFH_SIGNATURE,
-  EOCD_SIGNATURE,
-  LFH_SIZE,
-  LFH_OFFSETS,
-  LFHParamsNames,
-};
+];
 
 export {
-  constants,
   LFH_SIGNATURE,
   CDFH_SIGNATURE,
   EOCD_SIGNATURE,
   LFH_SIZE,
   LFH_OFFSETS,
-  LFHParamsNames,
-  noteType,
+  LFHNames as LFHParamsNames,
 };

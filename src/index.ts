@@ -41,7 +41,7 @@ class zipper {
 
   static async pack(path: string) {
     const tree = await this.getTree(path);
-    const writeable = createWriteStream('./temp/output/test.txt');
+    const writeable = createWriteStream('./temp/output/test.zip');
 
     const dictionary = await tree.write(writeable);
 
@@ -49,7 +49,7 @@ class zipper {
 
     dictionary.map((item) => {
       const cdfh = new CDFH(item.offset, item.filename);
-      writeable.write(cdfh.toString());
+      // writeable.write(cdfh.toString());
       return { ...item, cdfh };
     });
 
@@ -62,8 +62,12 @@ class zipper {
       centralDirectoryOffset
     );
 
-    writeable.write(eocd.toString());
+    // writeable.write(eocd.toString());
+
+    // fs.promises.readFile('./temp/output/test.zip').then((res) => {
+    //   console.log(res.toString('hex'));
+    // });
   }
 }
 
-const res = zipper.pack(inputPath1);
+const res = zipper.pack(inputPath2);

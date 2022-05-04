@@ -22,7 +22,7 @@ export interface IFileInfo {
 
 interface Note {
   toString(): void;
-  get hex(): string;
+  get hex(): Buffer;
 }
 
 export class LFH implements Note {
@@ -37,8 +37,8 @@ export class LFH implements Note {
   private [LFHParamsNames.uncompressedSize]: number;
   private [LFHParamsNames.filenameLength]: number;
   private [LFHParamsNames.extraFieldLength]: number;
+  private [LFHParamsNames.filename]: Buffer;
   private size: number;
-  private name: string;
   private data: Buffer;
 
   constructor(size: number, fileNameLength: number, name: string) {
@@ -49,9 +49,10 @@ export class LFH implements Note {
     this.compressedSize = size;
     this.uncompressedSize = size;
     this.compressionMethod = 0;
-    this.crc32 = 0;
+    // TODO: CRC32 FIX
+    this.crc32 = 0xcbf53a1c;
     this.filenameLength = fileNameLength;
-    this.name = name;
+    this.filename = Buffer.from(name);
     this.signature = LFH_SIGNATURE;
     this.data = Buffer.alloc(LFH_SIZE);
   }
@@ -66,23 +67,24 @@ export class LFH implements Note {
 
     bufferWriteParamMapping[param.type](
       this.data,
-      this[param.name],
+      this[param.name] as number,
       param.offset
     );
   }
 
-  get hex(): string {
-    this.addDataToBuffer(LFH_OFFSETS.versionToExtract);
+  get hex(): Buffer {
+    for (const param of LFH_OFFSETS) {
+      this.addDataToBuffer(param);
+    }
+    return this.data;
+  }
 
-    console.log(this.data);
-
-    return '0';
+  get name(): Buffer {
+    return this.filename;
   }
 
   toString() {
-    // return `${this.signature}:${this.size}:${this.filenameLength}:${this.fileName}:`;
-
-    return 'asdfasdf';
+    return `${this.signature}:${this.size}:${this.filenameLength}:${this.name}:`;
   }
 }
 
@@ -92,7 +94,7 @@ export class CDFH implements Note {
   constructor(private offset: number, private filename: string) {
     this.signature = CDFH_SIGNATURE;
   }
-  get hex(): string {
+  get hex(): Buffer {
     throw new Error('Method not implemented.');
   }
 
@@ -111,7 +113,7 @@ export class EOCD implements Note {
   ) {
     this.signature = EOCD_SIGNATURE;
   }
-  get hex(): string {
+  get hex(): Buffer {
     throw new Error('Method not implemented.');
   }
 
@@ -173,11 +175,12 @@ export class File extends Entrie {
     );
 
     const offset = await new Promise<number>((resolve, reject) => {
-      readableStream.on('data', (chunk) => {
+      readableStream.on('data', (_chunk) => {
         const offset = writeableStream.writableLength;
         writeableStream.write(lfh.hex);
+        writeableStream.write(lfh.name);
         // writeableStream.write(lfh.toString());
-        writeableStream.write(chunk.toString('hex'));
+        // writeableStream.write(chunk.toString('hex'));
         resolve(offset);
       });
 
