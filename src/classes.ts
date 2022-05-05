@@ -3,22 +3,20 @@ import { createReadStream, WriteStream } from 'fs';
 import { LFH } from './zip/lfh';
 import { CDFH } from './zip/cdfh';
 
-export interface IFileInfo {
-  filename: string;
-  fileNameLength: number;
-  size: number;
-  lfh: LFH;
-  cdfh?: CDFH;
-  offset: number;
-}
-// const toHex = (string: string): string => Buffer.from(string).toString('hex');
-
 enum targetTypes {
   dir = 'dir',
   file = 'file',
 }
 
-abstract class Entrie {
+export class Tree extends Array {
+  async writeLFH(writeableStream: WriteStream): Promise<void> {
+    for (const item of this) {
+      await item.writeLFH(writeableStream);
+    }
+  }
+}
+
+class Entrie {
   public stat: {
     name: string;
     dirname: string;
@@ -26,9 +24,8 @@ abstract class Entrie {
     fileNameLength: number;
   };
   public filePath: string;
-  abstract get info(): File | (File | Dir)[];
-  abstract get type(): targetTypes;
-  abstract write(stream: WriteStream): Promise<IFileInfo>;
+  public lfh: LFH;
+  public offset: number;
 
   constructor(filePath: string, size: number) {
     this.filePath = filePath;
@@ -42,6 +39,11 @@ abstract class Entrie {
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async writeLFH(_writeableStream: WriteStream): Promise<void> {
+    throw Error('Is not ready!!!');
+  }
+
   toString(): string {
     return JSON.stringify(this, null, 2);
   }
@@ -49,27 +51,25 @@ abstract class Entrie {
 
 export class File extends Entrie {
   private fileType: targetTypes;
-  private checksum: string | Buffer;
 
   constructor(filePath: string, size: number) {
     super(filePath, size);
     this.fileType = targetTypes.file;
-  }
-
-  async write(writeableStream: WriteStream): Promise<IFileInfo> {
-    const readableStream = createReadStream(this.filePath);
-
-    const lfh = new LFH(
+    this.lfh = new LFH(
       this.stat.size,
       this.stat.fileNameLength,
       this.stat.name
     );
+  }
+
+  async writeLFH(writeableStream: WriteStream): Promise<void> {
+    const readableStream = createReadStream(this.filePath);
 
     const offset = await new Promise<number>((resolve, reject) => {
       readableStream.on('data', (chunk) => {
         const offset = writeableStream.writableLength;
-        writeableStream.write(lfh.hex);
-        writeableStream.write(lfh.name);
+        writeableStream.write(this.lfh.hex);
+        writeableStream.write(this.lfh.name);
         writeableStream.write(chunk);
         resolve(offset);
       });
@@ -83,19 +83,7 @@ export class File extends Entrie {
       });
     });
 
-    const fileInfo: IFileInfo = {
-      filename: this.stat.name.toString(),
-      fileNameLength: this.stat.fileNameLength,
-      size: this.stat.size,
-      lfh: lfh,
-      offset,
-    };
-
-    return fileInfo;
-  }
-
-  get info(): File[] {
-    return [this];
+    this.offset = offset;
   }
 
   get type(): targetTypes {
@@ -105,29 +93,17 @@ export class File extends Entrie {
 export class Dir extends Entrie {
   private fileType: targetTypes;
 
-  constructor(
-    filePath: string,
-    size: number
-    // private childrens: Array<File | Dir>
-  ) {
+  constructor(filePath: string, size: number) {
     super(filePath, size);
-    // this.childrens = childrens;
     this.fileType = targetTypes.dir;
+    this.lfh = new LFH(0, this.stat.fileNameLength, this.stat.name);
   }
 
-  async write(writeableStream: WriteStream): Promise<IFileInfo> {
-    const lfh = new LFH(0, this.stat.fileNameLength, this.stat.name);
-
-    // const childrensFileInfo = await Promise.all(
-    //   this.childrens.map(async (item) => {
-    //     const pup = await item.write(writeableStream);
-    //     return pup;
-    //   })
-    // );
-
+  async writeLFH(writeableStream: WriteStream): Promise<void> {
     const offset = await new Promise<number>((resolve, reject) => {
       const offset = writeableStream.writableLength;
-      writeableStream.write(lfh.toString());
+      writeableStream.write(this.lfh.hex);
+      writeableStream.write(this.lfh.name);
       resolve(offset);
 
       writeableStream.on('error', (err) => {
@@ -135,34 +111,9 @@ export class Dir extends Entrie {
       });
     });
 
-    const dirInfo: IFileInfo = {
-      filename: this.stat.name.toString(),
-      fileNameLength: this.stat.fileNameLength,
-      size: this.stat.size,
-      lfh: lfh,
-      offset,
-    };
-
-    // const dictionary: IFileInfo[] = [dirInfo];
-    // childrensFileInfo.forEach((item) =>
-    //   Array.isArray(item) ? dictionary.push(...item) : dictionary.push(item)
-    // );
-
-    return dirInfo;
+    this.offset = offset;
   }
-
   get type(): targetTypes {
     return this.fileType;
-  }
-
-  get info(): (File | Dir)[] {
-    const result: (File | Dir)[] = [];
-
-    // this.childrens.forEach((file) => {
-    //   if (file instanceof File) result.push(file);
-    //   if (file instanceof Dir) result.push(...file.info);
-    // });
-
-    return result;
   }
 }

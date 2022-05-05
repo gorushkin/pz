@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Dir, File } from './classes';
+import { Dir, File, Tree } from './classes';
 import { createWriteStream, PathLike } from 'fs';
 
 const inputPath1: PathLike = '/home/gorushkin/Webdev/pz/temp/test/folder';
@@ -8,7 +8,7 @@ const inputPath1: PathLike = '/home/gorushkin/Webdev/pz/temp/test/folder';
 // const inputPath3: PathLike = '/home/gorushkin/Webdev/pz/temp/test';
 
 class zipper {
-  private static async getFiles(filename: string, acc: (File | Dir)[] = []) {
+  private static async getFiles(filename: string, acc: Tree = new Tree()) {
     const stat = await fs.promises.stat(filename);
     if (stat.isFile()) acc.push(new File(filename, stat.size));
     if (stat.isDirectory()) {
@@ -23,9 +23,29 @@ class zipper {
 
   static async pack(path: string) {
     const tree = await this.getFiles(path);
-    console.log('tree: ', tree);
-    // const writeable = createWriteStream('./temp/output/test.zip');
 
+    const writeable = createWriteStream('./temp/output/test.zip');
+
+    await tree.writeLFH(writeable);
+
+    tree.forEach((item) => {
+      console.log(item);
+    });
+
+    // const LFHList = tree.map((item) => item.getItemProps());
+
+    // tree.forEach((item) => {
+    //   item.writeLFH(writeable);
+    // });
+
+    // async function processArray(tree) {
+    //   for (const item of array) {
+    //     await delayedLog(item);
+    //   }
+    //   console.log('Done!');
+    // }
+
+    // console.log(LFHList);
     // const dictionary = await tree.write(writeable);
 
     // const centralDirectoryOffset = writeable.writableLength;
