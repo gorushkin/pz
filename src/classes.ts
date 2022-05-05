@@ -28,7 +28,7 @@ abstract class Entrie {
   public filePath: string;
   abstract get info(): File | (File | Dir)[];
   abstract get type(): targetTypes;
-  abstract write(stream: WriteStream): Promise<IFileInfo[]>;
+  abstract write(stream: WriteStream): Promise<IFileInfo>;
 
   constructor(filePath: string, size: number) {
     this.filePath = filePath;
@@ -56,7 +56,7 @@ export class File extends Entrie {
     this.fileType = targetTypes.file;
   }
 
-  async write(writeableStream: WriteStream): Promise<IFileInfo[]> {
+  async write(writeableStream: WriteStream): Promise<IFileInfo> {
     const readableStream = createReadStream(this.filePath);
 
     const lfh = new LFH(
@@ -91,7 +91,7 @@ export class File extends Entrie {
       offset,
     };
 
-    return [fileInfo];
+    return fileInfo;
   }
 
   get info(): File[] {
@@ -107,23 +107,23 @@ export class Dir extends Entrie {
 
   constructor(
     filePath: string,
-    size: number,
-    private childrens: Array<File | Dir>
+    size: number
+    // private childrens: Array<File | Dir>
   ) {
     super(filePath, size);
-    this.childrens = childrens;
+    // this.childrens = childrens;
     this.fileType = targetTypes.dir;
   }
 
-  async write(writeableStream: WriteStream): Promise<IFileInfo[]> {
+  async write(writeableStream: WriteStream): Promise<IFileInfo> {
     const lfh = new LFH(0, this.stat.fileNameLength, this.stat.name);
 
-    const childrensFileInfo = await Promise.all(
-      this.childrens.map(async (item) => {
-        const pup = await item.write(writeableStream);
-        return pup;
-      })
-    );
+    // const childrensFileInfo = await Promise.all(
+    //   this.childrens.map(async (item) => {
+    //     const pup = await item.write(writeableStream);
+    //     return pup;
+    //   })
+    // );
 
     const offset = await new Promise<number>((resolve, reject) => {
       const offset = writeableStream.writableLength;
@@ -143,12 +143,12 @@ export class Dir extends Entrie {
       offset,
     };
 
-    const dictionary: IFileInfo[] = [dirInfo];
-    childrensFileInfo.forEach((item) =>
-      Array.isArray(item) ? dictionary.push(...item) : dictionary.push(item)
-    );
+    // const dictionary: IFileInfo[] = [dirInfo];
+    // childrensFileInfo.forEach((item) =>
+    //   Array.isArray(item) ? dictionary.push(...item) : dictionary.push(item)
+    // );
 
-    return dictionary;
+    return dirInfo;
   }
 
   get type(): targetTypes {
@@ -158,10 +158,10 @@ export class Dir extends Entrie {
   get info(): (File | Dir)[] {
     const result: (File | Dir)[] = [];
 
-    this.childrens.forEach((file) => {
-      if (file instanceof File) result.push(file);
-      if (file instanceof Dir) result.push(...file.info);
-    });
+    // this.childrens.forEach((file) => {
+    //   if (file instanceof File) result.push(file);
+    //   if (file instanceof Dir) result.push(...file.info);
+    // });
 
     return result;
   }
