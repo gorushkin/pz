@@ -31,9 +31,10 @@ class zipper {
       tree.map(async (item) => {
         const { name, size, fileNameLength } = item.getFileInfo();
         const fileInfo = new FileInfo(size, fileNameLength, name);
+        const isFileEmpty = !size;
         fileInfo.offset = await fileInfo.writeLFH(
           writeable,
-          item.type,
+          isFileEmpty,
           item.filePath
         );
       })

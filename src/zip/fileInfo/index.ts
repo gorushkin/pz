@@ -120,14 +120,11 @@ export class FileInfo {
 
   async writeLFH(
     writeableStream: WriteStream,
-    type: targetTypes,
+    isFileEmpty: boolean,
     filepath: string
   ): Promise<number> {
-    const typeMappging = {
-      dir: this.writeDirLFH.bind(this),
-      file: this.writeFileLFH.bind(this),
-    };
-
-    return await typeMappging[type](writeableStream, filepath);
+    return isFileEmpty
+      ? this.writeDirLFH(writeableStream)
+      : this.writeFileLFH(writeableStream, filepath);
   }
 }
