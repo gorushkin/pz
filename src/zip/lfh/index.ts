@@ -1,25 +1,25 @@
 import { Note } from '..';
 import {
   IParam,
-  LFHParamsNames,
-  LFHParamsInfo,
+  FileInfoParams,
+  FileInfoProperties,
   LFH_SIGNATURE,
   LFH_SIZE,
 } from './constants';
 
 export class LFH implements Note {
-  private [LFHParamsNames.signature]: number;
-  private [LFHParamsNames.versionToExtract]: number;
-  private [LFHParamsNames.generalPurposeBitFlag]: number;
-  private [LFHParamsNames.compressionMethod]: number;
-  private [LFHParamsNames.modificationTime]: number;
-  private [LFHParamsNames.modificationDate]: number;
-  private [LFHParamsNames.crc32]: number;
-  private [LFHParamsNames.compressedSize]: number;
-  private [LFHParamsNames.uncompressedSize]: number;
-  private [LFHParamsNames.filenameLength]: number;
-  private [LFHParamsNames.extraFieldLength]: number;
-  private [LFHParamsNames.filename]: Buffer;
+  private [FileInfoParams.signature]: number;
+  private [FileInfoParams.versionToExtract]: number;
+  private [FileInfoParams.generalPurposeBitFlag]: number;
+  private [FileInfoParams.compressionMethod]: number;
+  private [FileInfoParams.modificationTime]: number;
+  private [FileInfoParams.modificationDate]: number;
+  private [FileInfoParams.crc32]: number;
+  private [FileInfoParams.compressedSize]: number;
+  private [FileInfoParams.uncompressedSize]: number;
+  private [FileInfoParams.filenameLength]: number;
+  private [FileInfoParams.extraFieldLength]: number;
+  private [FileInfoParams.filename]: Buffer;
   private data: Buffer;
 
   constructor(size: number, fileNameLength: number, name: string) {
@@ -54,7 +54,7 @@ export class LFH implements Note {
   }
 
   get hex(): Buffer {
-    for (const param of LFHParamsInfo) {
+    for (const param of FileInfoProperties) {
       this.addDataToBuffer(param);
     }
     return this.data;
@@ -65,15 +65,15 @@ export class LFH implements Note {
   }
   getProps() {
     return {
-      [LFHParamsNames.versionToExtract]: this.versionToExtract,
-      [LFHParamsNames.generalPurposeBitFlag]: this.generalPurposeBitFlag,
-      [LFHParamsNames.compressionMethod]: this.compressionMethod,
-      [LFHParamsNames.modificationTime]: this.modificationTime,
-      [LFHParamsNames.modificationDate]: this.modificationDate,
-      [LFHParamsNames.crc32]: this.crc32,
-      [LFHParamsNames.uncompressedSize]: this.uncompressedSize,
-      [LFHParamsNames.compressedSize]: this.compressedSize,
-      [LFHParamsNames.filename]: this.filename,
+      [FileInfoParams.versionToExtract]: this.versionToExtract,
+      [FileInfoParams.generalPurposeBitFlag]: this.generalPurposeBitFlag,
+      [FileInfoParams.compressionMethod]: this.compressionMethod,
+      [FileInfoParams.modificationTime]: this.modificationTime,
+      [FileInfoParams.modificationDate]: this.modificationDate,
+      [FileInfoParams.crc32]: this.crc32,
+      [FileInfoParams.uncompressedSize]: this.uncompressedSize,
+      [FileInfoParams.compressedSize]: this.compressedSize,
+      [FileInfoParams.filename]: this.filename,
     };
   }
 }

@@ -1,7 +1,7 @@
 const LFH_SIGNATURE = 0x04034b50;
 const LFH_SIZE = 30;
 
-enum LFHParamsNames {
+enum FileInfoParams {
   signature = 'signature',
   versionToExtract = 'versionToExtract',
   generalPurposeBitFlag = 'generalPurposeBitFlag',
@@ -19,65 +19,65 @@ enum LFHParamsNames {
 export interface IParam {
   offset: number;
   type: 32 | 16;
-  name: LFHParamsNames;
+  name: FileInfoParams;
 }
 
-const LFHParamsInfo: IParam[] = [
+const FileInfoProperties: IParam[] = [
   {
-    name: LFHParamsNames.signature,
+    name: FileInfoParams.signature,
     offset: 0,
     type: 32,
   },
   {
-    name: LFHParamsNames.versionToExtract,
+    name: FileInfoParams.versionToExtract,
     offset: 4,
     type: 16,
   },
   {
-    name: LFHParamsNames.generalPurposeBitFlag,
+    name: FileInfoParams.generalPurposeBitFlag,
     offset: 6,
     type: 16,
   },
   {
-    name: LFHParamsNames.compressionMethod,
+    name: FileInfoParams.compressionMethod,
     offset: 8,
     type: 16,
   },
   {
-    name: LFHParamsNames.modificationTime,
+    name: FileInfoParams.modificationTime,
     offset: 10,
     type: 16,
   },
   {
-    name: LFHParamsNames.modificationDate,
+    name: FileInfoParams.modificationDate,
     offset: 12,
     type: 16,
   },
   {
-    name: LFHParamsNames.crc32,
+    name: FileInfoParams.crc32,
     offset: 14,
     type: 32,
   },
   {
-    name: LFHParamsNames.compressedSize,
+    name: FileInfoParams.compressedSize,
     offset: 18,
     type: 32,
   },
   {
-    name: LFHParamsNames.uncompressedSize,
+    name: FileInfoParams.uncompressedSize,
     offset: 22,
     type: 32,
   },
   {
-    name: LFHParamsNames.filenameLength,
+    name: FileInfoParams.filenameLength,
     offset: 26,
     type: 16,
   },
   {
-    name: LFHParamsNames.extraFieldLength,
+    name: FileInfoParams.extraFieldLength,
     offset: 28,
     type: 16,
   },
 ];
 
-export { LFH_SIGNATURE, LFH_SIZE, LFHParamsInfo, LFHParamsNames };
+export { LFH_SIGNATURE, LFH_SIZE, FileInfoProperties, FileInfoParams };

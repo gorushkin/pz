@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Dir, File, Tree } from './classes';
+import { Dir, File } from './classes';
 import { createWriteStream, PathLike } from 'fs';
 import { CDFH, EOCD } from './zip';
 
