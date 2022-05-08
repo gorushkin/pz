@@ -1,7 +1,6 @@
-import { Note } from '..';
 import { EOCD_SIGNATURE } from './constants';
 
-export class EOCD implements Note {
+export class EOCD {
   private signature: number;
 
   constructor(
@@ -11,7 +10,7 @@ export class EOCD implements Note {
   ) {
     this.signature = EOCD_SIGNATURE;
   }
-  get hex(): Buffer {
+  get lfh(): Buffer {
     throw new Error('Method not implemented.');
   }
 

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { Dir, File } from './classes';
 import { createWriteStream, PathLike } from 'fs';
-import { CDFH, EOCD } from './zip';
+import { FileInfo } from './zip/fileInfo';
 
 const inputPath1: PathLike = '/home/gorushkin/Webdev/pz/temp/test/folder';
 const inputPath2: PathLike = '/home/gorushkin/Webdev/pz/temp/test/test.txt';
@@ -27,14 +27,17 @@ class zipper {
 
     const writeable = createWriteStream('./temp/output/test.zip');
 
-    const filesInfo = await Promise.all(
+    const fileInfoList = await Promise.all(
       tree.map(async (item) => {
-        const offset = await item.writeLFH(writeable);
-        return new CDFH(item.lfh, offset);
+        const { name, size, fileNameLength } = item.getFileInfo();
+        const fileInfo = new FileInfo(size, fileNameLength, name);
+        fileInfo.offset = await fileInfo.writeLFH(
+          writeable,
+          item.type,
+          item.filePath
+        );
       })
     );
-
-    console.log('filesInfo: ', filesInfo);
 
     const LFHbytesWritten = writeable.bytesWritten;
     const LFHwritableLength = writeable.writableLength;
