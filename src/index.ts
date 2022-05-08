@@ -41,19 +41,7 @@ class zipper {
     const centralDirectoryOffset = LFHbytesWritten + LFHwritableLength;
     console.log('centralDirectoryOffset: ', centralDirectoryOffset);
 
-    // const eocd = new EOCD();
-
     //TODO: временная связванность
-
-    // tree.forEach((item) => {
-    //   console.log(item);
-    // });
-
-    // const LFHList = tree.map((item) => item.getItemProps());
-
-    // tree.forEach((item) => {
-    //   item.writeLFH(writeable);
-    // });
 
     // async function processArray(tree) {
     //   for (const item of array) {

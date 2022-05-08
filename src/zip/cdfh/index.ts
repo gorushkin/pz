@@ -1,6 +1,7 @@
 import { Note } from '..';
-import { LFH } from '../lfh';
+import { LFH } from '../fileInfo';
 import { CDFH_SIGNATURE, CDFHParamsNames } from './constants';
+import { WriteStream } from 'fs';
 
 export class CDFH implements Note {
   private [CDFHParamsNames.signature]: number;
@@ -46,7 +47,6 @@ export class CDFH implements Note {
   get hex(): Buffer {
     throw new Error('Method not implemented.');
   }
-
   toString() {
     return `${this.signature}:${this.filename}:`;
   }

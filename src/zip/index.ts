@@ -3,6 +3,6 @@ export interface Note {
   get hex(): Buffer;
 }
 
-export { LFH } from './lfh';
+export { LFH } from './fileInfo';
 export { CDFH } from './cdfh';
 export { EOCD } from './eocd';
