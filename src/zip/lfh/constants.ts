@@ -1,9 +1,7 @@
 const LFH_SIGNATURE = 0x04034b50;
-const CDFH_SIGNATURE = 0x02014b50;
-const EOCD_SIGNATURE = 0x06054b50;
 const LFH_SIZE = 30;
 
-enum LFHNames {
+enum LFHParamsNames {
   signature = 'signature',
   versionToExtract = 'versionToExtract',
   generalPurposeBitFlag = 'generalPurposeBitFlag',
@@ -21,72 +19,65 @@ enum LFHNames {
 export interface IParam {
   offset: number;
   type: 32 | 16;
-  name: LFHNames;
+  name: LFHParamsNames;
 }
 
-const LFH_OFFSETS: IParam[] = [
+const LFHParamsInfo: IParam[] = [
   {
-    name: LFHNames.signature,
+    name: LFHParamsNames.signature,
     offset: 0,
     type: 32,
   },
   {
-    name: LFHNames.versionToExtract,
+    name: LFHParamsNames.versionToExtract,
     offset: 4,
     type: 16,
   },
   {
-    name: LFHNames.generalPurposeBitFlag,
+    name: LFHParamsNames.generalPurposeBitFlag,
     offset: 6,
     type: 16,
   },
   {
-    name: LFHNames.compressionMethod,
+    name: LFHParamsNames.compressionMethod,
     offset: 8,
     type: 16,
   },
   {
-    name: LFHNames.modificationTime,
+    name: LFHParamsNames.modificationTime,
     offset: 10,
     type: 16,
   },
   {
-    name: LFHNames.modificationDate,
+    name: LFHParamsNames.modificationDate,
     offset: 12,
     type: 16,
   },
   {
-    name: LFHNames.crc32,
+    name: LFHParamsNames.crc32,
     offset: 14,
     type: 32,
   },
   {
-    name: LFHNames.compressedSize,
+    name: LFHParamsNames.compressedSize,
     offset: 18,
     type: 32,
   },
   {
-    name: LFHNames.uncompressedSize,
+    name: LFHParamsNames.uncompressedSize,
     offset: 22,
     type: 32,
   },
   {
-    name: LFHNames.filenameLength,
+    name: LFHParamsNames.filenameLength,
     offset: 26,
     type: 16,
   },
   {
-    name: LFHNames.extraFieldLength,
+    name: LFHParamsNames.extraFieldLength,
     offset: 28,
     type: 16,
   },
 ];
 
-export {
-  LFH_SIGNATURE,
-  CDFH_SIGNATURE,
-  EOCD_SIGNATURE,
-  LFH_SIZE,
-  LFH_OFFSETS,
-  LFHNames as LFHParamsNames,
-};
+export { LFH_SIGNATURE, LFH_SIZE, LFHParamsInfo, LFHParamsNames };

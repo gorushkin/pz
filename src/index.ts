@@ -4,33 +4,39 @@ import { Dir, File, Tree } from './classes';
 import { createWriteStream, PathLike } from 'fs';
 
 const inputPath1: PathLike = '/home/gorushkin/Webdev/pz/temp/test/folder';
-// const inputPath2: PathLike = '/home/gorushkin/Webdev/pz/temp/test/test.txt';
-// const inputPath3: PathLike = '/home/gorushkin/Webdev/pz/temp/test';
+const inputPath2: PathLike = '/home/gorushkin/Webdev/pz/temp/test/test.txt';
+const inputPath3: PathLike = '/home/gorushkin/Webdev/pz/temp/test';
 
 class zipper {
-  private static async getFiles(filename: string, acc: Tree = new Tree()) {
+  private static async getTree(filename: string, acc: Tree = new Tree([])) {
     const stat = await fs.promises.stat(filename);
     if (stat.isFile()) acc.push(new File(filename, stat.size));
     if (stat.isDirectory()) {
       const files = await fs.promises.readdir(filename);
       acc.push(new Dir(filename, stat.size));
       await Promise.all(
-        files.map((item) => this.getFiles(path.join(filename, item), acc))
+        files.map((item) => this.getTree(path.join(filename, item), acc))
       );
     }
     return acc;
   }
 
   static async pack(path: string) {
-    const tree = await this.getFiles(path);
+    const tree = await this.getTree(path);
 
     const writeable = createWriteStream('./temp/output/test.zip');
 
-    await tree.writeLFH(writeable);
+    const filesInfo = await tree.writeLFH(writeable);
 
-    tree.forEach((item) => {
-      console.log(item);
-    });
+    const LFHbytesWritten = writeable.bytesWritten;
+    const LFHwritableLength = writeable.writableLength;
+    const centralDirectoryOffset = LFHbytesWritten + LFHwritableLength;
+
+    //TODO: временная связванность
+
+    // tree.forEach((item) => {
+    //   console.log(item);
+    // });
 
     // const LFHList = tree.map((item) => item.getItemProps());
 

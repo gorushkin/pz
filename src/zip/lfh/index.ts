@@ -2,7 +2,7 @@ import { Note } from '..';
 import {
   IParam,
   LFHParamsNames,
-  LFH_OFFSETS,
+  LFHParamsInfo,
   LFH_SIGNATURE,
   LFH_SIZE,
 } from './constants';
@@ -20,7 +20,6 @@ export class LFH implements Note {
   private [LFHParamsNames.filenameLength]: number;
   private [LFHParamsNames.extraFieldLength]: number;
   private [LFHParamsNames.filename]: Buffer;
-  private size: number;
   private data: Buffer;
 
   constructor(size: number, fileNameLength: number, name: string) {
@@ -55,7 +54,7 @@ export class LFH implements Note {
   }
 
   get hex(): Buffer {
-    for (const param of LFH_OFFSETS) {
+    for (const param of LFHParamsInfo) {
       this.addDataToBuffer(param);
     }
     return this.data;
@@ -64,8 +63,17 @@ export class LFH implements Note {
   get name(): Buffer {
     return this.filename;
   }
-
-  toString() {
-    return `${this.signature}:${this.size}:${this.filenameLength}:${this.name}:`;
+  getProps() {
+    return {
+      [LFHParamsNames.versionToExtract]: this.versionToExtract,
+      [LFHParamsNames.generalPurposeBitFlag]: this.generalPurposeBitFlag,
+      [LFHParamsNames.compressionMethod]: this.compressionMethod,
+      [LFHParamsNames.modificationTime]: this.modificationTime,
+      [LFHParamsNames.modificationDate]: this.modificationDate,
+      [LFHParamsNames.crc32]: this.crc32,
+      [LFHParamsNames.uncompressedSize]: this.uncompressedSize,
+      [LFHParamsNames.compressedSize]: this.compressedSize,
+      [LFHParamsNames.filename]: this.filename,
+    };
   }
 }

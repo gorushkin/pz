@@ -1,22 +1,33 @@
 import path from 'path';
 import { createReadStream, WriteStream } from 'fs';
-import { LFH } from './zip/lfh';
-import { CDFH } from './zip/cdfh';
+import { LFH, CDFH } from './zip';
 
 enum targetTypes {
   dir = 'dir',
   file = 'file',
 }
+export class Tree {
+  private list: (File | Dir)[];
 
-export class Tree extends Array {
-  async writeLFH(writeableStream: WriteStream): Promise<void> {
-    for (const item of this) {
-      await item.writeLFH(writeableStream);
-    }
+  constructor(list: (File | Dir)[]) {
+    this.list = list;
+  }
+
+  push(item: File | Dir) {
+    this.list = [...this.list, item];
+  }
+
+  async writeLFH(writeableStream: WriteStream): Promise<CDFH[]> {
+    return await Promise.all(
+      this.list.map(async (item) => {
+        const offset = await item.writeLFH(writeableStream);
+        return new CDFH(item.lfh, offset);
+      })
+    );
   }
 }
 
-class Entrie {
+abstract class Entrie {
   public stat: {
     name: string;
     dirname: string;
@@ -25,12 +36,14 @@ class Entrie {
   };
   public filePath: string;
   public lfh: LFH;
-  public offset: number;
+  public cdfh: CDFH;
+  public offset: number | null;
 
   constructor(filePath: string, size: number) {
     this.filePath = filePath;
     const name = path.basename(filePath);
     const dirname = path.dirname(filePath);
+    this.offset = null;
     this.stat = {
       name,
       dirname,
@@ -40,12 +53,17 @@ class Entrie {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async writeLFH(_writeableStream: WriteStream): Promise<void> {
+  async writeLFH(_writeableStream: WriteStream): Promise<number> {
     throw Error('Is not ready!!!');
   }
 
   toString(): string {
     return JSON.stringify(this, null, 2);
+  }
+
+  clone() {
+    const clonedObject = Object.assign({}, this);
+    return clonedObject;
   }
 }
 
@@ -55,6 +73,7 @@ export class File extends Entrie {
   constructor(filePath: string, size: number) {
     super(filePath, size);
     this.fileType = targetTypes.file;
+
     this.lfh = new LFH(
       this.stat.size,
       this.stat.fileNameLength,
@@ -62,7 +81,7 @@ export class File extends Entrie {
     );
   }
 
-  async writeLFH(writeableStream: WriteStream): Promise<void> {
+  async writeLFH(writeableStream: WriteStream): Promise<number> {
     const readableStream = createReadStream(this.filePath);
 
     const offset = await new Promise<number>((resolve, reject) => {
@@ -83,7 +102,7 @@ export class File extends Entrie {
       });
     });
 
-    this.offset = offset;
+    return offset;
   }
 
   get type(): targetTypes {
@@ -99,7 +118,7 @@ export class Dir extends Entrie {
     this.lfh = new LFH(0, this.stat.fileNameLength, this.stat.name);
   }
 
-  async writeLFH(writeableStream: WriteStream): Promise<void> {
+  async writeLFH(writeableStream: WriteStream): Promise<number> {
     const offset = await new Promise<number>((resolve, reject) => {
       const offset = writeableStream.writableLength;
       writeableStream.write(this.lfh.hex);
@@ -111,8 +130,9 @@ export class Dir extends Entrie {
       });
     });
 
-    this.offset = offset;
+    return offset;
   }
+
   get type(): targetTypes {
     return this.fileType;
   }
