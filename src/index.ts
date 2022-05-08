@@ -2,13 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import { Dir, File, Tree } from './classes';
 import { createWriteStream, PathLike } from 'fs';
+import { CDFH, EOCD } from './zip';
 
 const inputPath1: PathLike = '/home/gorushkin/Webdev/pz/temp/test/folder';
 const inputPath2: PathLike = '/home/gorushkin/Webdev/pz/temp/test/test.txt';
 const inputPath3: PathLike = '/home/gorushkin/Webdev/pz/temp/test';
 
 class zipper {
-  private static async getTree(filename: string, acc: Tree = new Tree([])) {
+  private static async getTree(filename: string, acc: (File | Dir)[] = []) {
     const stat = await fs.promises.stat(filename);
     if (stat.isFile()) acc.push(new File(filename, stat.size));
     if (stat.isDirectory()) {
@@ -26,11 +27,21 @@ class zipper {
 
     const writeable = createWriteStream('./temp/output/test.zip');
 
-    const filesInfo = await tree.writeLFH(writeable);
+    const filesInfo = await Promise.all(
+      tree.map(async (item) => {
+        const offset = await item.writeLFH(writeable);
+        return new CDFH(item.lfh, offset);
+      })
+    );
+
+    console.log('filesInfo: ', filesInfo);
 
     const LFHbytesWritten = writeable.bytesWritten;
     const LFHwritableLength = writeable.writableLength;
     const centralDirectoryOffset = LFHbytesWritten + LFHwritableLength;
+    console.log('centralDirectoryOffset: ', centralDirectoryOffset);
+
+    // const eocd = new EOCD();
 
     //TODO: временная связванность
 

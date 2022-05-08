@@ -6,26 +6,6 @@ enum targetTypes {
   dir = 'dir',
   file = 'file',
 }
-export class Tree {
-  private list: (File | Dir)[];
-
-  constructor(list: (File | Dir)[]) {
-    this.list = list;
-  }
-
-  push(item: File | Dir) {
-    this.list = [...this.list, item];
-  }
-
-  async writeLFH(writeableStream: WriteStream): Promise<CDFH[]> {
-    return await Promise.all(
-      this.list.map(async (item) => {
-        const offset = await item.writeLFH(writeableStream);
-        return new CDFH(item.lfh, offset);
-      })
-    );
-  }
-}
 
 abstract class Entrie {
   public stat: {
@@ -59,11 +39,6 @@ abstract class Entrie {
 
   toString(): string {
     return JSON.stringify(this, null, 2);
-  }
-
-  clone() {
-    const clonedObject = Object.assign({}, this);
-    return clonedObject;
   }
 }
 
