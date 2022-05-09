@@ -37,7 +37,12 @@ export class FileInfo {
   private lfhFields: IParam[] = LFHProperties;
   private cdfhFields: IParam[] = CDFHProperties;
 
-  constructor(size: number, fileNameLength: number, name: string) {
+  constructor(
+    size: number,
+    fileNameLength: number,
+    name: string,
+    crc32: number
+  ) {
     this.versionToExtract = 20;
     this.generalPurposeBitFlag = 0;
     this.modificationTime = 28021;
@@ -45,8 +50,7 @@ export class FileInfo {
     this.compressedSize = size;
     this.uncompressedSize = size;
     this.compressionMethod = 0;
-    // TODO: CRC32 FIX
-    this.crc32 = 0xcbf53a1c;
+    this.crc32 = crc32;
     this.filenameLength = fileNameLength;
     this.filename = Buffer.from(name);
     this.lfhSignature = LFH_SIGNATURE;
@@ -150,5 +154,36 @@ export class FileInfo {
 
       resolve();
     });
+  }
+  private formatHexString(buffer: Buffer): string {
+    type Row = string;
+    type List = Row[];
+
+    const stringReducer = (
+      acc: string[],
+      item: string,
+      index: number,
+      array: string[]
+    ) => (index % 2 === 0 ? [...acc, item + array[index + 1]] : acc);
+
+    const fromatReducer = (acc: List, item: string, index: number) => {
+      const itemRow = Math.floor(index / 16) + 1;
+      if (acc.length < itemRow) acc.push('');
+      const isElementLastInRow = index === 15;
+      const element = isElementLastInRow ? `${item}` : `${item}  `;
+      acc[itemRow - 1] += element;
+      return acc;
+    };
+
+    const string = buffer.toString('hex');
+    const reducedString = string.split('').reduce(stringReducer, []);
+    const formattedString = reducedString.reduce(fromatReducer, []);
+
+    return formattedString.join('\n');
+  }
+
+  printlfh(): void {
+    const result = this.formatHexString(this.lfhRawData);
+    console.log(result);
   }
 }

@@ -1,5 +1,3 @@
-import path from 'path';
-
 export enum targetTypes {
   dir = 'dir',
   file = 'file',
@@ -7,18 +5,18 @@ export enum targetTypes {
 
 abstract class Entrie {
   name: string;
-  dirname: string;
   size: number;
+  crc32: number;
   fileNameLength: number;
 
   public filePath: string;
 
-  constructor(filePath: string, size: number) {
+  constructor(filePath: string, size: number, name: string, crc32: number) {
     this.filePath = filePath;
-    this.name = path.basename(filePath);
-    this.dirname = path.dirname(filePath);
+    this.name = name;
     this.fileNameLength = this.name.length;
     this.size = size;
+    this.crc32 = crc32;
   }
 
   getFileInfo() {
@@ -29,14 +27,15 @@ abstract class Entrie {
 interface FileInfo {
   size: number;
   fileNameLength: number;
+  crc32: number;
   name: string;
 }
 
 export class File extends Entrie {
   private fileType: targetTypes;
 
-  constructor(filePath: string, size: number) {
-    super(filePath, size);
+  constructor(filePath: string, size: number, name: string, crc32: number) {
+    super(filePath, size, name, crc32);
     this.fileType = targetTypes.file;
   }
 
@@ -45,6 +44,7 @@ export class File extends Entrie {
       size: this.size,
       fileNameLength: this.fileNameLength,
       name: this.name,
+      crc32: this.crc32,
     };
   }
 
@@ -56,8 +56,13 @@ export class File extends Entrie {
 export class Dir extends Entrie {
   private fileType: targetTypes;
 
-  constructor(filePath: string, size: number) {
-    super(filePath, size);
+  constructor(
+    filePath: string,
+    size: number,
+    relativePath: string,
+    crc32: number
+  ) {
+    super(filePath, size, relativePath, crc32);
     this.fileType = targetTypes.dir;
   }
 
@@ -70,6 +75,7 @@ export class Dir extends Entrie {
       size: 0,
       fileNameLength: this.fileNameLength,
       name: this.name,
+      crc32: 0,
     };
   }
 }
