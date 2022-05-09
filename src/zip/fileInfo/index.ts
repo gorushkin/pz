@@ -79,6 +79,10 @@ export class FileInfo {
     );
   }
 
+  get isEmpty(): boolean {
+    return !this.uncompressedSize;
+  }
+
   get lfh(): Buffer {
     for (const param of this.lfhFields) {
       this.addDataToBuffer(param, this.lfhRawData);

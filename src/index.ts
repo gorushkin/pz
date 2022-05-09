@@ -1,5 +1,5 @@
 import path from 'path';
-import { Dir, File } from './classes';
+import { Item } from './Item';
 import fs, { createWriteStream, PathLike, WriteStream } from 'fs';
 import { FileInfo } from './zip/fileInfo';
 import { EOCD } from './zip/eocd';
@@ -12,23 +12,19 @@ const inputPath4: PathLike = '/home/gorushkin/Webdev/pz/temp/test/folder/empty';
 
 const outputPath = './temp/output/test.zip';
 
-async function getTree(
-  filename: string,
-  acc: (File | Dir)[] = [],
-  pathFromTop = ''
-) {
+async function getTree(filename: string, acc: Item[] = [], pathFromTop = '') {
   const stat = await fs.promises.stat(filename);
   if (stat.isFile()) {
     const basename = path.basename(filename);
     const name = path.join(pathFromTop, basename);
     const crc32 = await getCRC32(filename);
-    acc.push(new File(filename, stat.size, name, crc32));
+    acc.push(new Item(filename, stat.size, name, crc32));
   }
   if (stat.isDirectory()) {
     const files = await fs.promises.readdir(filename);
     const basename = path.basename(filename);
     const name = path.join(pathFromTop, basename, '/');
-    acc.push(new Dir(filename, stat.size, name, 0));
+    acc.push(new Item(filename, 0, name, 0));
     await Promise.all(
       files.map((item) => getTree(path.join(filename, item), acc, name))
     );
@@ -36,7 +32,7 @@ async function getTree(
   return acc;
 }
 
-async function getFileInfoList(tree: (File | Dir)[], writeable: WriteStream) {
+async function getFileInfoList(tree: Item[], writeable: WriteStream) {
   const fileInfoList = await Promise.all(
     tree.map(async (item) => {
       const { name, size, fileNameLength, crc32 } = item.getFileInfo();
@@ -82,10 +78,6 @@ async function pack(input: string, output: string) {
 
   const sizeOfCentralDirectory =
     getWrittenSize(writeable) - centralDirectoryOffset;
-
-  // fileInfoList.forEach((item) => {
-  //   item.printHex();
-  // });
 
   const eocd = new EOCD(
     totalCentralDirectoryRecord,
