@@ -57,7 +57,7 @@ export class FileInfo {
     this.cdfhSignature = CDFH_SIGNATURE;
     this.lfhRawData = Buffer.alloc(LFH_SIZE);
     this.cdfhRawData = Buffer.alloc(CDFH_SIZE);
-    this.versionMadeBy = 798;
+    this.versionMadeBy = 20;
     this.fileCommentLength = 0;
     this.diskNumber = 0;
     this.internalFileAttributes = 0;
@@ -104,7 +104,9 @@ export class FileInfo {
     const readableStream = createReadStream(filePath);
     const offset = await new Promise<number>((resolve, reject) => {
       readableStream.on('data', (chunk) => {
-        const offset = writeableStream.writableLength;
+        const writableLength = writeableStream.writableLength;
+        const bytesWritten = writeableStream.bytesWritten;
+        const offset = bytesWritten + writableLength;
         writeableStream.write(this.lfh);
         writeableStream.write(this.filename);
         writeableStream.write(chunk);
@@ -182,7 +184,7 @@ export class FileInfo {
     return formattedString.join('\n');
   }
 
-  printlfh(): void {
+  printHex(): void {
     const result = this.formatHexString(this.lfhRawData);
     console.log(result);
   }

@@ -29,6 +29,7 @@ export class EOCD {
     this.totalCentralDirectoryRecord = totalCentralDirectoryRecord;
     this.sizeOfCentralDirectory = sizeOfCentralDirectory;
     this.centralDirectoryOffset = centralDirectoryOffset;
+    this.numberCentralDirectoryRecord = totalCentralDirectoryRecord;
     this.eocdRawData = Buffer.alloc(EOCD_SIZE);
   }
 
