@@ -1,85 +1,81 @@
-import fs from 'fs';
 import path from 'path';
 import { Dir, File } from './classes';
-import { createWriteStream, PathLike } from 'fs';
+import fs, { createWriteStream, PathLike, WriteStream } from 'fs';
 import { FileInfo } from './zip/fileInfo';
+import { EOCD } from './zip/eocd';
 
 const inputPath1: PathLike = '/home/gorushkin/Webdev/pz/temp/test/folder';
 const inputPath2: PathLike = '/home/gorushkin/Webdev/pz/temp/test/test.txt';
 const inputPath3: PathLike = '/home/gorushkin/Webdev/pz/temp/test';
 
-class zipper {
-  private static async getTree(filename: string, acc: (File | Dir)[] = []) {
-    const stat = await fs.promises.stat(filename);
-    if (stat.isFile()) acc.push(new File(filename, stat.size));
-    if (stat.isDirectory()) {
-      const files = await fs.promises.readdir(filename);
-      acc.push(new Dir(filename, stat.size));
-      await Promise.all(
-        files.map((item) => this.getTree(path.join(filename, item), acc))
-      );
-    }
-    return acc;
-  }
+const outputPath = './temp/output/test.zip';
 
-  static async pack(path: string) {
-    const tree = await this.getTree(path);
-
-    const writeable = createWriteStream('./temp/output/test.zip');
-
-    const fileInfoList = await Promise.all(
-      tree.map(async (item) => {
-        const { name, size, fileNameLength } = item.getFileInfo();
-        const fileInfo = new FileInfo(size, fileNameLength, name);
-        const isFileEmpty = !size;
-        fileInfo.offset = await fileInfo.writeLFH(
-          writeable,
-          isFileEmpty,
-          item.filePath
-        );
-      })
+async function getTree(filename: string, acc: (File | Dir)[] = []) {
+  const stat = await fs.promises.stat(filename);
+  if (stat.isFile()) acc.push(new File(filename, stat.size));
+  if (stat.isDirectory()) {
+    const files = await fs.promises.readdir(filename);
+    acc.push(new Dir(filename, stat.size));
+    await Promise.all(
+      files.map((item) => getTree(path.join(filename, item), acc))
     );
-
-    const LFHbytesWritten = writeable.bytesWritten;
-    const LFHwritableLength = writeable.writableLength;
-    const centralDirectoryOffset = LFHbytesWritten + LFHwritableLength;
-    console.log('centralDirectoryOffset: ', centralDirectoryOffset);
-
-    //TODO: временная связванность
-
-    // async function processArray(tree) {
-    //   for (const item of array) {
-    //     await delayedLog(item);
-    //   }
-    //   console.log('Done!');
-    // }
-
-    // console.log(LFHList);
-    // const dictionary = await tree.write(writeable);
-
-    // const centralDirectoryOffset = writeable.writableLength;
-
-    // dictionary.map((item) => {
-    //   // const cdfh = new CDFH(item.offset, item.filename);
-    //   // writeable.write(cdfh.toString());
-    //   // return { ...item, cdfh };
-    // });
-
-    // const sizeOfCentralDirectory =
-    //   writeable.writableLength - centralDirectoryOffset;
-
-    // const eocd = new EOCD(
-    //   dictionary.length,
-    //   sizeOfCentralDirectory,
-    //   centralDirectoryOffset
-    // );
-
-    // writeable.write(eocd.toString());
-
-    // fs.promises.readFile('./temp/output/test.zip').then((res) => {
-    //   console.log(res.toString('hex'));
-    // });
   }
+  return acc;
 }
 
-const res = zipper.pack(inputPath1);
+async function getFileInfoList(tree: (File | Dir)[], writeable: WriteStream) {
+  const fileInfoList = await Promise.all(
+    tree.map(async (item) => {
+      const { name, size, fileNameLength } = item.getFileInfo();
+      const fileInfo = new FileInfo(size, fileNameLength, name);
+      const isFileEmpty = !size;
+      fileInfo.offset = await fileInfo.writeLFH(
+        writeable,
+        isFileEmpty,
+        item.filePath
+      );
+
+      return fileInfo;
+    })
+  );
+
+  return fileInfoList;
+}
+function getWrittenSize(writeable: WriteStream): number {
+  const CDFHbytesWritten = writeable.bytesWritten;
+  const CDFHwritableLength = writeable.writableLength;
+  return CDFHbytesWritten + CDFHwritableLength;
+}
+
+async function writeFileInfo(fileInfoList: FileInfo[], writeable: WriteStream) {
+  for (const item of fileInfoList) {
+    item.writeCDFH(writeable);
+  }
+}
+// TODO: методы для записи убрать из классов и перенесть в главную ф-ци.
+
+async function pack(input: string, output: string) {
+  const writeable = createWriteStream(output);
+
+  const tree = await getTree(input);
+
+  const fileInfoList = await getFileInfoList(tree, writeable);
+
+  const centralDirectoryOffset = getWrittenSize(writeable);
+  const totalCentralDirectoryRecord = tree.length;
+
+  await writeFileInfo(fileInfoList, writeable);
+
+  const sizeOfCentralDirectory =
+    getWrittenSize(writeable) - centralDirectoryOffset;
+
+  const eocd = new EOCD(
+    totalCentralDirectoryRecord,
+    sizeOfCentralDirectory,
+    centralDirectoryOffset
+  );
+
+  await eocd.writeEOCD(writeable);
+}
+
+const res = pack(inputPath1, outputPath);

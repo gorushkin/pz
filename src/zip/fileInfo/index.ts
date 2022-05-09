@@ -1,9 +1,10 @@
 import { WriteStream, createReadStream } from 'fs';
-import { targetTypes } from 'src/classes';
 import {
   IParam,
   FileInfoParams,
   LFHProperties,
+  CDFHProperties,
+  CDFH_SIZE,
   LFH_SIGNATURE,
   LFH_SIZE,
   CDFH_SIGNATURE,
@@ -32,7 +33,9 @@ export class FileInfo {
   private [FileInfoParams.extraField]: number;
   private [FileInfoParams.fileComment]: number;
   private lfhRawData: Buffer;
+  private cdfhRawData: Buffer;
   private lfhFields: IParam[] = LFHProperties;
+  private cdfhFields: IParam[] = CDFHProperties;
 
   constructor(size: number, fileNameLength: number, name: string) {
     this.versionToExtract = 20;
@@ -49,6 +52,7 @@ export class FileInfo {
     this.lfhSignature = LFH_SIGNATURE;
     this.cdfhSignature = CDFH_SIGNATURE;
     this.lfhRawData = Buffer.alloc(LFH_SIZE);
+    this.cdfhRawData = Buffer.alloc(CDFH_SIZE);
     this.versionMadeBy = 798;
     this.fileCommentLength = 0;
     this.diskNumber = 0;
@@ -56,7 +60,7 @@ export class FileInfo {
     this.externalFileAttributes = 2176057344;
   }
 
-  private addDataToBuffer(param: IParam): void {
+  private addDataToBuffer(param: IParam, buffer: Buffer): void {
     const bufferWriteParamMapping = {
       32: (buffer: Buffer, value: number, offset: number) =>
         buffer.writeUInt32LE(value, offset),
@@ -65,7 +69,7 @@ export class FileInfo {
     };
 
     bufferWriteParamMapping[param.type](
-      this.lfhRawData,
+      buffer,
       this[param.name] as number,
       param.offset
     );
@@ -73,9 +77,16 @@ export class FileInfo {
 
   get lfh(): Buffer {
     for (const param of this.lfhFields) {
-      this.addDataToBuffer(param);
+      this.addDataToBuffer(param, this.lfhRawData);
     }
     return this.lfhRawData;
+  }
+
+  get cdfh(): Buffer {
+    for (const param of this.cdfhFields) {
+      this.addDataToBuffer(param, this.cdfhRawData);
+    }
+    return this.cdfhRawData;
   }
 
   set offset(offset: number) {
@@ -108,7 +119,7 @@ export class FileInfo {
   async writeDirLFH(writeableStream: WriteStream): Promise<number> {
     const offset = await new Promise<number>((resolve, reject) => {
       const offset = writeableStream.writableLength;
-      writeableStream.write(this.lfhRawData);
+      writeableStream.write(this.lfh);
       writeableStream.write(this.filename);
       resolve(offset);
       writeableStream.on('error', (err) => {
@@ -126,5 +137,18 @@ export class FileInfo {
     return isFileEmpty
       ? this.writeDirLFH(writeableStream)
       : this.writeFileLFH(writeableStream, filepath);
+  }
+
+  async writeCDFH(writeableStream: WriteStream): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      writeableStream.write(this.cdfh);
+      writeableStream.write(this.filename);
+
+      writeableStream.on('error', (err) => {
+        reject(err);
+      });
+
+      resolve();
+    });
   }
 }

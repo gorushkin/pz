@@ -62,4 +62,4 @@ const EOCDParamsInfo: IParam[] = [
   },
 ];
 
-export { EOCDParamsNames, EOCDParamsInfo, EOCD_SIZE, EOCD_SIGNATURE };
+export { EOCDParamsNames, EOCDParamsInfo, EOCD_SIZE, EOCD_SIGNATURE, IParam };
