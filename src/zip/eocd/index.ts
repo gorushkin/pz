@@ -5,7 +5,6 @@ import {
   EOCDParamsInfo,
   IParam,
 } from './constants';
-import { WriteStream } from 'fs';
 
 export class EOCD {
   private [EOCDParamsNames.signature]: number;
@@ -53,17 +52,5 @@ export class EOCD {
       this.addDataToBuffer(param, this.eocdRawData);
     }
     return this.eocdRawData;
-  }
-
-  async writeEOCD(writeableStream: WriteStream): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-      writeableStream.write(this.eocd);
-
-      writeableStream.on('error', (err) => {
-        reject(err);
-      });
-
-      resolve();
-    });
   }
 }

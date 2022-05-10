@@ -116,6 +116,21 @@ async function writeCDFH(fileInfoList: FileInfo[], writeable: WriteStream) {
   }
 }
 
+async function writeEOCD(
+  writeableStream: WriteStream,
+  eocd: EOCD
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    writeableStream.write(eocd.eocd);
+
+    writeableStream.on('error', (err) => {
+      reject(err);
+    });
+
+    resolve();
+  });
+}
+
 async function pack(input: string, output: string) {
   const writeable = createWriteStream(output);
 
@@ -136,8 +151,7 @@ async function pack(input: string, output: string) {
     sizeOfCentralDirectory,
     centralDirectoryOffset
   );
-
-  await eocd.writeEOCD(writeable);
+  await writeEOCD(writeable, eocd);
 }
 
 const res = pack(inputPath1, outputPath);
