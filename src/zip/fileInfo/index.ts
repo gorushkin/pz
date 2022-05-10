@@ -101,19 +101,6 @@ export class FileInfo {
     this.localFileHeaderOffset = offset;
   }
 
-  async writeCDFH(writeableStream: WriteStream): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-      writeableStream.write(this.cdfh);
-      writeableStream.write(this.filename);
-
-      writeableStream.on('error', (err) => {
-        reject(err);
-      });
-
-      resolve();
-    });
-  }
-
   private formatHexString(buffer: Buffer): string {
     type Row = string;
     type List = Row[];
