@@ -1,4 +1,4 @@
-import { WriteStream, createReadStream } from 'fs';
+import { WriteStream } from 'fs';
 import {
   IParam,
   FileInfoParams,
@@ -23,7 +23,7 @@ export class FileInfo {
   private [FileInfoParams.uncompressedSize]: number;
   private [FileInfoParams.filenameLength]: number;
   private [FileInfoParams.extraFieldLength]: number;
-  private [FileInfoParams.filename]: Buffer;
+  public [FileInfoParams.filename]: Buffer;
   private [FileInfoParams.versionMadeBy]: number;
   private [FileInfoParams.fileCommentLength]: number;
   private [FileInfoParams.diskNumber]: number;
@@ -101,54 +101,6 @@ export class FileInfo {
     this.localFileHeaderOffset = offset;
   }
 
-  async writeFileLFH(
-    writeableStream: WriteStream,
-    filePath: string
-  ): Promise<number> {
-    const readableStream = createReadStream(filePath);
-    const offset = await new Promise<number>((resolve, reject) => {
-      readableStream.on('data', (chunk) => {
-        const writableLength = writeableStream.writableLength;
-        const bytesWritten = writeableStream.bytesWritten;
-        const offset = bytesWritten + writableLength;
-        writeableStream.write(this.lfh);
-        writeableStream.write(this.filename);
-        writeableStream.write(chunk);
-        resolve(offset);
-      });
-      readableStream.on('error', (err) => {
-        reject(err);
-      });
-      writeableStream.on('error', (err) => {
-        reject(err);
-      });
-    });
-    return offset;
-  }
-
-  async writeDirLFH(writeableStream: WriteStream): Promise<number> {
-    const offset = await new Promise<number>((resolve, reject) => {
-      const offset = writeableStream.writableLength;
-      writeableStream.write(this.lfh);
-      writeableStream.write(this.filename);
-      resolve(offset);
-      writeableStream.on('error', (err) => {
-        reject(err);
-      });
-    });
-    return offset;
-  }
-
-  async writeLFH(
-    writeableStream: WriteStream,
-    isFileEmpty: boolean,
-    filepath: string
-  ): Promise<number> {
-    return isFileEmpty
-      ? this.writeDirLFH(writeableStream)
-      : this.writeFileLFH(writeableStream, filepath);
-  }
-
   async writeCDFH(writeableStream: WriteStream): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       writeableStream.write(this.cdfh);
@@ -161,6 +113,7 @@ export class FileInfo {
       resolve();
     });
   }
+
   private formatHexString(buffer: Buffer): string {
     type Row = string;
     type List = Row[];

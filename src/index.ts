@@ -1,6 +1,11 @@
 import path from 'path';
 import { Item } from './Item';
-import fs, { createWriteStream, PathLike, WriteStream } from 'fs';
+import fs, {
+  createWriteStream,
+  PathLike,
+  WriteStream,
+  createReadStream,
+} from 'fs';
 import { FileInfo } from './zip/fileInfo';
 import { EOCD } from './zip/eocd';
 import { getCRC32 } from './crc32';
@@ -12,7 +17,7 @@ const inputPath4: PathLike = '/home/gorushkin/Webdev/pz/temp/test/folder/empty';
 
 const outputPath = './temp/output/test.zip';
 
-async function getTree(filename: string, acc: Item[] = [], pathFromTop = '') {
+async function getFiles(filename: string, acc: Item[] = [], pathFromTop = '') {
   const stat = await fs.promises.stat(filename);
   if (stat.isFile()) {
     const basename = path.basename(filename);
@@ -26,10 +31,52 @@ async function getTree(filename: string, acc: Item[] = [], pathFromTop = '') {
     const name = path.join(pathFromTop, basename, '/');
     acc.push(new Item(filename, 0, name, 0));
     await Promise.all(
-      files.map((item) => getTree(path.join(filename, item), acc, name))
+      files.map((item) => getFiles(path.join(filename, item), acc, name))
     );
   }
   return acc;
+}
+
+async function writeFileLFH(
+  writeableStream: WriteStream,
+  filePath: string,
+  fileInfo: FileInfo
+): Promise<number> {
+  const readableStream = createReadStream(filePath);
+  const offset = await new Promise<number>((resolve, reject) => {
+    readableStream.on('data', (chunk) => {
+      const writableLength = writeableStream.writableLength;
+      const bytesWritten = writeableStream.bytesWritten;
+      const offset = bytesWritten + writableLength;
+      writeableStream.write(fileInfo.lfh);
+      writeableStream.write(fileInfo.filename);
+      writeableStream.write(chunk);
+      resolve(offset);
+    });
+    readableStream.on('error', (err) => {
+      reject(err);
+    });
+    writeableStream.on('error', (err) => {
+      reject(err);
+    });
+  });
+  return offset;
+}
+
+async function writeDirLFH(
+  writeableStream: WriteStream,
+  fileInfo: FileInfo
+): Promise<number> {
+  const offset = await new Promise<number>((resolve, reject) => {
+    const offset = writeableStream.writableLength;
+    writeableStream.write(fileInfo.lfh);
+    writeableStream.write(fileInfo.filename);
+    resolve(offset);
+    writeableStream.on('error', (err) => {
+      reject(err);
+    });
+  });
+  return offset;
 }
 
 async function getFileInfoList(tree: Item[], writeable: WriteStream) {
@@ -38,11 +85,9 @@ async function getFileInfoList(tree: Item[], writeable: WriteStream) {
       const { name, size, fileNameLength, crc32 } = item.getFileInfo();
       const fileInfo = new FileInfo(size, fileNameLength, name, crc32);
       const isFileEmpty = !size;
-      fileInfo.offset = await fileInfo.writeLFH(
-        writeable,
-        isFileEmpty,
-        item.filePath
-      );
+      fileInfo.offset = await (isFileEmpty
+        ? writeDirLFH(writeable, fileInfo)
+        : writeFileLFH(writeable, item.filePath, fileInfo));
 
       return fileInfo;
     })
@@ -50,7 +95,6 @@ async function getFileInfoList(tree: Item[], writeable: WriteStream) {
 
   return fileInfoList;
 }
-
 function getWrittenSize(writeable: WriteStream): number {
   const CDFHbytesWritten = writeable.bytesWritten;
   const CDFHwritableLength = writeable.writableLength;
@@ -62,17 +106,16 @@ async function writeFileInfo(fileInfoList: FileInfo[], writeable: WriteStream) {
     item.writeCDFH(writeable);
   }
 }
-// TODO: методы для записи убрать из классов и перенесть в главную ф-ци.
 
 async function pack(input: string, output: string) {
   const writeable = createWriteStream(output);
 
-  const tree = await getTree(input);
+  const files = await getFiles(input);
 
-  const fileInfoList = await getFileInfoList(tree, writeable);
+  const fileInfoList = await getFileInfoList(files, writeable);
 
   const centralDirectoryOffset = getWrittenSize(writeable);
-  const totalCentralDirectoryRecord = tree.length;
+  const totalCentralDirectoryRecord = files.length;
 
   await writeFileInfo(fileInfoList, writeable);
 
