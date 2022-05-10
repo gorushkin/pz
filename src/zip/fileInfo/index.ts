@@ -1,4 +1,3 @@
-import { WriteStream } from 'fs';
 import {
   IParam,
   FileInfoParams,
@@ -99,37 +98,5 @@ export class FileInfo {
 
   set offset(offset: number) {
     this.localFileHeaderOffset = offset;
-  }
-
-  private formatHexString(buffer: Buffer): string {
-    type Row = string;
-    type List = Row[];
-
-    const stringReducer = (
-      acc: string[],
-      item: string,
-      index: number,
-      array: string[]
-    ) => (index % 2 === 0 ? [...acc, item + array[index + 1]] : acc);
-
-    const fromatReducer = (acc: List, item: string, index: number) => {
-      const itemRow = Math.floor(index / 16) + 1;
-      if (acc.length < itemRow) acc.push('');
-      const isElementLastInRow = index === 15;
-      const element = isElementLastInRow ? `${item}` : `${item}  `;
-      acc[itemRow - 1] += element;
-      return acc;
-    };
-
-    const string = buffer.toString('hex');
-    const reducedString = string.split('').reduce(stringReducer, []);
-    const formattedString = reducedString.reduce(fromatReducer, []);
-
-    return formattedString.join('\n');
-  }
-
-  printHex(): void {
-    const result = this.formatHexString(this.lfhRawData);
-    console.log(result);
   }
 }

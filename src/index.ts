@@ -95,6 +95,7 @@ async function getFileInfoList(tree: Item[], writeable: WriteStream) {
 
   return fileInfoList;
 }
+
 function getWrittenSize(writeable: WriteStream): number {
   const CDFHbytesWritten = writeable.bytesWritten;
   const CDFHwritableLength = writeable.writableLength;
@@ -139,6 +140,7 @@ async function pack(input: string, output: string) {
   const fileInfoList = await getFileInfoList(files, writeable);
 
   const centralDirectoryOffset = getWrittenSize(writeable);
+
   const totalCentralDirectoryRecord = files.length;
 
   await writeCDFH(fileInfoList, writeable);
@@ -151,7 +153,8 @@ async function pack(input: string, output: string) {
     sizeOfCentralDirectory,
     centralDirectoryOffset
   );
+
   await writeEOCD(writeable, eocd);
 }
 
-const res = pack(inputPath1, outputPath);
+const res = pack(inputPath3, outputPath);
